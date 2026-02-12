@@ -11,39 +11,44 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { router } from "expo-router";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
-import { useAuth } from "@/lib/auth-context";
-import { useTheme } from "@/lib/theme-context";
-import type { Position, PlayerLevel, AgeGroup } from "@/lib/types";
+import { useTheme } from "@/context/ThemeContext";
+import { useAppData } from "@/context/AppDataContext";
 import { POSITIONS, PLAYER_LEVELS, CITIES, AGE_GROUPS } from "@/lib/types";
 
 export default function EditProfileScreen() {
-  const { profile, updateProfile } = useAuth();
   const { colors } = useTheme();
-  const insets = useSafeAreaInsets();
+  const { profile, updateProfile } = useAppData();
 
   const [name, setName] = useState(profile?.name ?? "");
-  const [position, setPosition] = useState<Position>(profile?.position ?? "وسط");
-  const [level, setLevel] = useState<PlayerLevel>(profile?.level ?? "متوسط");
-  const [city, setCity] = useState(profile?.city ?? "المدينة");
+  const [position, setPosition] = useState(profile?.position ?? POSITIONS[0]);
+  const [level, setLevel] = useState(profile?.level ?? PLAYER_LEVELS[0]);
+  const [city, setCity] = useState(profile?.city ?? "طرابلس");
   const [area, setArea] = useState(profile?.area ?? "");
-  const [ageGroup, setAgeGroup] = useState<AgeGroup>(profile?.ageGroup ?? "18-24");
+  const [ageGroup, setAgeGroup] = useState(profile?.ageGroup ?? AGE_GROUPS[2]);
   const [showAgeGroup, setShowAgeGroup] = useState(profile?.showAgeGroup ?? true);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const topInset = Platform.OS === "web" ? 67 : insets.top;
-  const bottomInset = Platform.OS === "web" ? 34 : insets.bottom;
-
-  if (!profile) return null;
+  const [error, setError] = useState("");
 
   const handleSave = async () => {
-    if (!name.trim() || isSubmitting) return;
+    setError("");
+
+    if (!profile) {
+      setError("لا يوجد ملف شخصي");
+      return;
+    }
+    if (!name.trim()) {
+      setError("يرجى إدخال الاسم");
+      return;
+    }
+    if (!area.trim()) {
+      setError("يرجى إدخال المنطقة");
+      return;
+    }
 
     setIsSubmitting(true);
     try {
       await updateProfile({
-        ...profile,
         name: name.trim(),
         position,
         level,
@@ -53,268 +58,249 @@ export default function EditProfileScreen() {
         showAgeGroup,
       });
       router.back();
-    } catch (error) {
-      console.error("Failed to update profile:", error);
+    } catch (e) {
+      setError("حدث خطأ، حاول مرة أخرى");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const renderChips = <T extends string>(
-    items: readonly T[],
-    selected: T,
-    onSelect: (item: T) => void
-  ) => (
-    <View style={styles.chipsContainer}>
-      {items.map((item) => (
-        <TouchableOpacity
-          key={item}
-          style={[
-            styles.chip,
-            { backgroundColor: colors.surfaceSecondary },
-            selected === item && { backgroundColor: colors.primary },
-          ]}
-          onPress={() => onSelect(item)}
-          activeOpacity={0.7}
-        >
-          <Text
-            style={[
-              styles.chipText,
-              { color: colors.text },
-              selected === item && { color: "#FFFFFF" },
-            ]}
-          >
-            {item}
-          </Text>
-        </TouchableOpacity>
-      ))}
-    </View>
-  );
-
   return (
-    <View style={[styles.screen, { backgroundColor: colors.background }]}>
-      <View
-        style={[
-          styles.header,
-          { paddingTop: topInset + 12, borderBottomColor: colors.border },
-        ]}
-      >
-        <TouchableOpacity onPress={() => router.back()} activeOpacity={0.7}>
-          <Ionicons name="close" size={28} color={colors.text} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>
-          تعديل الملف
-        </Text>
-        <View style={{ width: 28 }} />
+    <ScrollView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      contentContainerStyle={styles.content}
+      keyboardShouldPersistTaps="handled"
+    >
+      <Text style={[styles.title, { color: colors.text }]}>تعديل الملف الشخصي</Text>
+      <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+        حدّث بياناتك بسهولة
+      </Text>
+
+      {!!error && (
+        <View style={[styles.errorBox, { backgroundColor: colors.danger + "20" }]}>
+          <Text style={[styles.errorText, { color: colors.danger }]}>{error}</Text>
+        </View>
+      )}
+
+      <View style={styles.section}>
+        <Text style={[styles.label, { color: colors.text }]}>الاسم</Text>
+        <TextInput
+          value={name}
+          onChangeText={setName}
+          placeholder="اكتب اسمك"
+          placeholderTextColor={colors.textSecondary}
+          style={[
+            styles.input,
+            {
+              backgroundColor: colors.card,
+              color: colors.text,
+              borderColor: colors.border,
+            },
+          ]}
+        />
       </View>
 
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={[
-          styles.scrollContent,
-          { paddingBottom: bottomInset + 20 },
-        ]}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-      >
-        <View style={styles.formSection}>
-          <Text style={[styles.label, { color: colors.text }]}>اسم اللاعب</Text>
-          <TextInput
-            style={[
-              styles.input,
-              {
-                backgroundColor: colors.surfaceSecondary,
-                color: colors.text,
-              },
-            ]}
-            value={name}
-            onChangeText={setName}
-            placeholder="أدخل اسمك"
-            placeholderTextColor={colors.textTertiary}
-            textAlign="right"
-          />
-        </View>
-
-        <View style={styles.formSection}>
-          <Text style={[styles.label, { color: colors.text }]}>المركز</Text>
-          {renderChips(POSITIONS, position, setPosition)}
-        </View>
-
-        <View style={styles.formSection}>
-          <Text style={[styles.label, { color: colors.text }]}>المستوى</Text>
-          {renderChips(PLAYER_LEVELS, level, setLevel)}
-        </View>
-
-        <View style={styles.formSection}>
-          <Text style={[styles.label, { color: colors.text }]}>المدينة</Text>
-          <View style={styles.chipsWrap}>
-            {CITIES.map((c) => (
-              <TouchableOpacity
-                key={c}
+      <View style={styles.section}>
+        <Text style={[styles.label, { color: colors.text }]}>المركز</Text>
+        <View style={styles.pillsRow}>
+          {POSITIONS.map((p) => (
+            <TouchableOpacity
+              key={p}
+              onPress={() => setPosition(p)}
+              style={[
+                styles.pill,
+                { backgroundColor: colors.card, borderColor: colors.border },
+                position === p && { backgroundColor: colors.primary },
+              ]}
+              activeOpacity={0.7}
+            >
+              <Text
                 style={[
-                  styles.chip,
-                  { backgroundColor: colors.surfaceSecondary },
-                  city === c && { backgroundColor: colors.primary },
+                  styles.pillText,
+                  { color: colors.text },
+                  position === p && { color: "#FFFFFF" },
                 ]}
-                onPress={() => setCity(c)}
-                activeOpacity={0.7}
               >
-                <Text
-                  style={[
-                    styles.chipText,
-                    { color: colors.text },
-                    city === c && { color: "#FFFFFF" },
-                  ]}
-                >
-                  {c}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+                {p}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
+      </View>
 
-        <View style={styles.formSection}>
-          <Text style={[styles.label, { color: colors.text }]}>
-            المنطقة/الحي
-          </Text>
-          <TextInput
-            style={[
-              styles.input,
-              {
-                backgroundColor: colors.surfaceSecondary,
-                color: colors.text,
-              },
-            ]}
-            value={area}
-            onChangeText={setArea}
-            placeholder="أدخل المنطقة أو الحي"
-            placeholderTextColor={colors.textTertiary}
-            textAlign="right"
-          />
+      <View style={styles.section}>
+        <Text style={[styles.label, { color: colors.text }]}>المستوى</Text>
+        <View style={styles.pillsRow}>
+          {PLAYER_LEVELS.map((l) => (
+            <TouchableOpacity
+              key={l}
+              onPress={() => setLevel(l)}
+              style={[
+                styles.pill,
+                { backgroundColor: colors.card, borderColor: colors.border },
+                level === l && { backgroundColor: colors.primary },
+              ]}
+              activeOpacity={0.7}
+            >
+              <Text
+                style={[
+                  styles.pillText,
+                  { color: colors.text },
+                  level === l && { color: "#FFFFFF" },
+                ]}
+              >
+                {l}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
+      </View>
 
-        <View style={styles.formSection}>
-          <Text style={[styles.label, { color: colors.text }]}>
-            الفئة العمرية
-          </Text>
-          {renderChips(AGE_GROUPS, ageGroup, setAgeGroup)}
+      <View style={styles.section}>
+        <Text style={[styles.label, { color: colors.text }]}>المدينة</Text>
+        <View style={styles.pillsRow}>
+          {CITIES.map((c) => (
+            <TouchableOpacity
+              key={c}
+              onPress={() => setCity(c)}
+              style={[
+                styles.pill,
+                { backgroundColor: colors.card, borderColor: colors.border },
+                city === c && { backgroundColor: colors.primary },
+              ]}
+              activeOpacity={0.7}
+            >
+              <Text
+                style={[
+                  styles.pillText,
+                  { color: colors.text },
+                  city === c && { color: "#FFFFFF" },
+                ]}
+              >
+                {c}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
+      </View>
 
-        <View style={styles.toggleRow}>
-          <Switch
-            value={showAgeGroup}
-            onValueChange={setShowAgeGroup}
-            trackColor={{ false: colors.border, true: colors.primary }}
-            thumbColor="#FFFFFF"
-          />
-          <Text style={[styles.toggleLabel, { color: colors.text }]}>
-            إظهار الفئة العمرية
-          </Text>
-        </View>
-
-        <TouchableOpacity
+      <View style={styles.section}>
+        <Text style={[styles.label, { color: colors.text }]}>المنطقة</Text>
+        <TextInput
+          value={area}
+          onChangeText={setArea}
+          placeholder="مثال: جنزور، سوق الجمعة..."
+          placeholderTextColor={colors.textSecondary}
           style={[
-            styles.submitButton,
-            { backgroundColor: colors.primary },
-            !name.trim() && styles.submitButtonDisabled,
+            styles.input,
+            {
+              backgroundColor: colors.card,
+              color: colors.text,
+              borderColor: colors.border,
+            },
           ]}
-          onPress={handleSave}
-          activeOpacity={0.85}
-          disabled={!name.trim() || isSubmitting}
-        >
-          {isSubmitting ? (
-            <ActivityIndicator color="#FFFFFF" />
-          ) : (
-            <Text style={styles.submitButtonText}>حفظ التغييرات</Text>
-          )}
-        </TouchableOpacity>
-      </ScrollView>
-    </View>
+        />
+      </View>
+
+      <View style={styles.section}>
+        <Text style={[styles.label, { color: colors.text }]}>الفئة العمرية</Text>
+        <View style={styles.pillsRow}>
+          {AGE_GROUPS.map((a) => (
+            <TouchableOpacity
+              key={a}
+              onPress={() => setAgeGroup(a)}
+              style={[
+                styles.pill,
+                { backgroundColor: colors.card, borderColor: colors.border },
+                ageGroup === a && { backgroundColor: colors.primary },
+              ]}
+              activeOpacity={0.7}
+            >
+              <Text
+                style={[
+                  styles.pillText,
+                  { color: colors.text },
+                  ageGroup === a && { color: "#FFFFFF" },
+                ]}
+              >
+                {a}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+
+      <View style={[styles.section, styles.rowBetween]}>
+        <View>
+          <Text style={[styles.label, { color: colors.text }]}>إظهار الفئة العمرية</Text>
+          <Text style={[styles.hint, { color: colors.textSecondary }]}>
+            يمكنك إخفاؤها من الملف الشخصي
+          </Text>
+        </View>
+        <Switch
+          value={showAgeGroup}
+          onValueChange={setShowAgeGroup}
+          thumbColor={Platform.OS === "android" ? "#FFFFFF" : undefined}
+          trackColor={{ false: colors.border, true: colors.primary }}
+        />
+      </View>
+
+      <TouchableOpacity
+        style={[
+          styles.submitBtn,
+          { backgroundColor: colors.primary },
+          isSubmitting && { opacity: 0.7 },
+        ]}
+        onPress={handleSave}
+        disabled={isSubmitting}
+        activeOpacity={0.8}
+      >
+        {isSubmitting ? (
+          <ActivityIndicator color="#FFFFFF" />
+        ) : (
+          <Text style={styles.submitText}>حفظ</Text>
+        )}
+      </TouchableOpacity>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-  },
-  header: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingBottom: 14,
-    borderBottomWidth: 1,
-  },
-  headerTitle: {
-    fontFamily: "Cairo_700Bold",
-    fontSize: 18,
-    textAlign: "center",
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: 24,
-    paddingTop: 20,
-  },
-  formSection: {
-    marginBottom: 20,
-  },
-  label: {
-    fontFamily: "Cairo_600SemiBold",
-    fontSize: 16,
-    textAlign: "right",
-    marginBottom: 8,
-  },
+  container: { flex: 1 },
+  content: { padding: 16, paddingBottom: 40 },
+  title: { fontSize: 24, fontWeight: "800", marginTop: 8 },
+  subtitle: { marginTop: 6, fontSize: 14, marginBottom: 16 },
+  section: { marginBottom: 14 },
+  label: { fontSize: 14, fontWeight: "700", marginBottom: 8 },
+  hint: { fontSize: 12, marginTop: 4 },
   input: {
+    borderWidth: 1,
     borderRadius: 12,
-    padding: 16,
-    fontFamily: "Cairo_400Regular",
-    fontSize: 16,
-    textAlign: "right",
-  },
-  chipsContainer: {
-    flexDirection: "row-reverse",
-    gap: 8,
-  },
-  chipsWrap: {
-    flexDirection: "row-reverse",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  chip: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 12,
-  },
-  chipText: {
-    fontFamily: "Cairo_600SemiBold",
+    paddingHorizontal: 12,
+    paddingVertical: 12,
     fontSize: 14,
   },
-  toggleRow: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    justifyContent: "flex-start",
-    gap: 12,
-    marginBottom: 28,
+  pillsRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  pill: {
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
   },
-  toggleLabel: {
-    fontFamily: "Cairo_600SemiBold",
-    fontSize: 16,
-  },
-  submitButton: {
-    borderRadius: 16,
-    height: 56,
+  pillText: { fontSize: 13, fontWeight: "700" },
+  submitBtn: {
+    marginTop: 8,
+    borderRadius: 14,
+    paddingVertical: 14,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 20,
   },
-  submitButtonDisabled: {
-    opacity: 0.5,
-  },
-  submitButtonText: {
-    fontFamily: "Cairo_700Bold",
-    fontSize: 18,
-    color: "#FFFFFF",
+  submitText: { color: "#FFFFFF", fontSize: 15, fontWeight: "800" },
+  errorBox: { padding: 12, borderRadius: 12, marginBottom: 12 },
+  errorText: { fontSize: 13, fontWeight: "700" },
+  rowBetween: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
 });
