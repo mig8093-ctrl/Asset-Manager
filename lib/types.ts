@@ -47,61 +47,68 @@ export interface TeamInvite {
 export interface Match {
   id: string;
   type: MatchType;
-  homeTeamId: string;
-  homeTeamName: string;
-  awayTeamId?: string;
-  awayTeamName?: string;
-  date: string;
-  time: string;
-  city: string;
-  stadium?: string;
-  locationUrl?: string;
-  notes?: string;
   status: MatchStatus;
-  createdBy: string;
-  createdAt: string;
-}
+  createdByPlayerId: string;
+  createdByName: string;
+  createdByTeamId?: string;
 
-export interface Rating {
-  id: string;
-  matchId: string;
-  fromTeamId: string;
-  toTeamId: string;
-  stars: number;
-  note?: string;
-  createdAt: string;
-}
+  opponentTeamId?: string;
+  opponentTeamName?: string;
 
-export interface FreeAgent {
-  id: string;
-  playerId: string;
-  playerName: string;
-  position: Position;
+  matchDate: string;
+  startTime: string;
+
   city: string;
-  area: string;
-  level: PlayerLevel;
-  note?: string;
+  venue: string;
+
+  notes?: string;
+
   createdAt: string;
-  expiresAt: string;
+  confirmedAt?: string;
+  finishedAt?: string;
+  cancelledAt?: string;
 }
 
-export interface Report {
+export interface TeamRating {
   id: string;
-  reporterId: string;
-  reporterName: string;
-  targetType: 'team' | 'player' | 'match';
-  targetId: string;
-  targetName: string;
+  teamId: string;
+  fromTeamId: string;
+  fromTeamName: string;
+  rating: number; // 1 - 5
+  comment?: string;
+  createdAt: string;
+}
+
+export interface TeamReport {
+  id: string;
+  reportedTeamId: string;
+  reportedTeamName: string;
+  reporterTeamId: string;
+  reporterTeamName: string;
   reason: string;
   details?: string;
   status: ReportStatus;
   createdAt: string;
+  resolvedAt?: string;
+  adminNotes?: string;
 }
 
 export const CITIES = [
-  'الرياض', 'جدة', 'مكة', 'المدينة', 'الدمام',
-  'الخبر', 'الظهران', 'تبوك', 'أبها', 'الطائف',
-  'حائل', 'بريدة', 'نجران', 'جازان', 'ينبع',
+  'طرابلس',
+  'بنغازي',
+  'مصراتة',
+  'سبها',
+  'سرت',
+  'الزاوية',
+  'زليتن',
+  'الخمس',
+  'اجدابيا',
+  'البيضاء',
+  'درنة',
+  'طبرق',
+  'غريان',
+  'ترهونة',
+  'بني وليد',
 ];
 
 export const POSITIONS: Position[] = ['حارس', 'دفاع', 'وسط', 'هجوم'];
